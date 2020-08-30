@@ -6,6 +6,7 @@ import (
 	"github.com/OhhhThatVarun/swear-free/lists"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -18,7 +19,7 @@ func SetLocale(locale string) {
 	libLocale = locale
 }
 
-func setReplaceCharacter(replaceCharacter string) {
+func SetReplaceCharacter(replaceCharacter string) {
 	libReplaceCharacter = replaceCharacter
 }
 
@@ -33,13 +34,20 @@ func CensorWord(str string) string {
 	// TODO: This lookup should be improved by using map or something
 	for position, word := range strSlice {
 
+		var swearWordFound = false
+
 		for _, forbiddenWord := range unCensored.Words {
 
 			if test := strings.EqualFold(strings.ToLower(word), forbiddenWord); test == true {
 				replacement := strings.Repeat(libReplaceCharacter, len(word))
 				strSlice[position] = replacement
 				newSlice = append(strSlice[:position], strSlice[position:]...)
+				swearWordFound = true
 			}
+		}
+
+		if !swearWordFound {
+			newSlice = append(strSlice[:position], strSlice[position:]...)
 		}
 	}
 	return strings.Join(newSlice, " ") // convert []string slice back to string
@@ -50,7 +58,8 @@ func loadJsonFile() lists.WordJson {
 		fmt.Println(fmt.Sprintf("No locale defined, using the default locale: %s", defaultLocale))
 		libLocale = defaultLocale
 	}
-	var jsonFileName = fmt.Sprintf("lists/ForbiddenWords%s.json", libLocale)
+
+	var jsonFileName = fmt.Sprintf("%s/lists/ForbiddenWords%s.json", getWorkingDir(), libLocale)
 	jsonFile, err := os.Open(jsonFileName)
 	if err != nil {
 		fmt.Println("currently this locale is not supported")
@@ -62,4 +71,12 @@ func loadJsonFile() lists.WordJson {
 	var wordJson lists.WordJson
 	_ = json.Unmarshal(byteValue, &wordJson)
 	return wordJson
+}
+
+func getWorkingDir() string {
+	wd, _ := os.Getwd()
+	for !strings.HasSuffix(wd, "swear-free") {
+		wd = filepath.Dir(wd)
+	}
+	return wd
 }
